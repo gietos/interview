@@ -3,6 +3,11 @@
 class Desk {
     private $figures = [];
 
+    /**
+     * @var Move
+     */
+    private $lastMove;
+
     public function __construct() {
         $this->figures['a'][1] = new Rook(false);
         $this->figures['b'][1] = new Knight(false);
@@ -41,27 +46,43 @@ class Desk {
         $this->figures['h'][8] = new Rook(true);
     }
 
-    public function move($move) {
-        if (!preg_match('/^([a-h])(\d)-([a-h])(\d)$/', $move, $match)) {
-            throw new \Exception("Incorrect move");
+
+
+    public function move(Move $move) {
+        $xFrom = $move->getCoords()[1];
+        $yFrom = $move->getCoords()[2];
+        $xTo   = $move->getCoords()[3];
+        $yTo   = $move->getCoords()[4];
+
+        if (!isset($this->figures[$xFrom][$yFrom])) {
+            // @todo Write correct exception message
+            throw new \Exception(sprintf('Incorrect move: no figure at position'));
         }
 
-        $xFrom = $match[1];
-        $yFrom = $match[2];
-        $xTo   = $match[3];
-        $yTo   = $match[4];
+        /** @var Figure $figure */
+        $figure = $this->figures[$xFrom][$yFrom];
+        if (null !== $this->lastMove && $this->lastMove->getFigure()->isBlack() === $figure->isBlack()) {
+            // @todo Write correct exception message
+            throw new \Exception('Incorrect move order');
+        }
+
+        $move->setFigure($figure);
+        $figure->validateMove($move, $this);
+        $figure->move();
+
+        $this->lastMove = $move;
 
         if (isset($this->figures[$xFrom][$yFrom])) {
             $this->figures[$xTo][$yTo] = $this->figures[$xFrom][$yFrom];
         }
-        unset($this->figures[$xFrom][$yFrom]);
+        $this->figures[$xFrom][$yFrom] = null;
     }
 
     public function dump() {
         for ($y = 8; $y >= 1; $y--) {
             echo "$y ";
             for ($x = 'a'; $x <= 'h'; $x++) {
-                if (isset($this->figures[$x][$y])) {
+                if (isset($this->figures[$x][$y]) && null !== $this->figures[$x][$y]) {
                     echo $this->figures[$x][$y];
                 } else {
                     echo '-';
@@ -70,5 +91,16 @@ class Desk {
             echo "\n";
         }
         echo "  abcdefgh\n";
+    }
+
+    /**
+     * @param $x
+     * @param $y
+     *
+     * @return null|Figure
+     */
+    public function getFigure($x, $y)
+    {
+        return isset($this->figures[$x][$y]) ? $this->figures[$x][$y] : null;
     }
 }

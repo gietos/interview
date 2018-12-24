@@ -11,7 +11,7 @@ try {
     array_shift($args);
 
     foreach ($args as $move) {
-        $desk->move($move);
+        $desk->move(new Move($move));
     }
 
     $desk->dump();
